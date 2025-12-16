@@ -140,8 +140,9 @@ Travel-Planner-AI/
 ---
 
 ## 📸 Screenshots
-(Add screenshots of your 3D Dashboard here)
+![3D Dashboard](screenshots/dashboard.png)
 
+*(Agentic AI Dashboard with 3D Holographic Earth)*
 ---
 
 ## 🤝 Contributing
