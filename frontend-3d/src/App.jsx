@@ -1,4 +1,4 @@
-import React, { useState, useRef, useMemo, useEffect } from "react";
+import React, { useState, useRef, useMemo } from "react";
 import { Canvas, useFrame } from "@react-three/fiber";
 import { OrbitControls, Stars, Float, Sparkles } from "@react-three/drei";
 import * as THREE from 'three';
@@ -6,7 +6,7 @@ import axios from "axios";
 import { motion, AnimatePresence } from "framer-motion";
 import jsPDF from "jspdf";
 
-const API_URL = "https://travel-planner-ai-qlbb.onrender.com/generate_plan"; // Live Backend
+const API_URL = "https://travel-planner-ai-qlbb.onrender.com/generate_plan"; 
 const MAX_LIMIT = 2; 
 
 const CITIES = {
@@ -57,7 +57,6 @@ function App() {
   const [errorMsg, setErrorMsg] = useState("");
   const [isSpeaking, setIsSpeaking] = useState(false);
 
-  // --- ACTIONS ---
   const handleGenerate = async () => {
     if (usageCount >= MAX_LIMIT) return;
     setLoading(true);
@@ -117,7 +116,6 @@ function App() {
           doc.text(splitText, 20, y);
           y += (splitText.length * 6) + 10;
       });
-      
       doc.save(`Trip_Plan_${formData.destination}.pdf`);
   };
 
@@ -143,13 +141,11 @@ function App() {
 
   return (
     <>
-    {/* --- RESPONSIVE CSS --- */}
     <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&display=swap');
         
         body { margin: 0; overflow: hidden; background: #000510; }
         
-        /* Desktop Layout (Default) */
         .app-container {
             display: flex;
             width: 100vw;
@@ -158,6 +154,7 @@ function App() {
             position: relative;
         }
         
+        /* Desktop Sidebar */
         .sidebar {
             width: 380px;
             padding: 40px;
@@ -167,11 +164,22 @@ function App() {
             flex-direction: column;
             z-index: 60;
             position: relative;
+            overflow-y: auto; /* Allow scroll inside sidebar */
         }
 
         .canvas-container {
             flex: 1;
             position: relative;
+        }
+
+        .footer {
+            margin-top: auto;
+            padding-top: 20px;
+            border-top: 1px solid #222;
+            text-align: center;
+            font-size: 0.75rem;
+            color: #555;
+            letter-spacing: 1px;
         }
 
         .modal-content {
@@ -182,51 +190,51 @@ function App() {
             padding: 40px;
             box-shadow: 0 0 60px rgba(0, 229, 255, 0.15);
             position: relative;
-            max-height: 90vh;
+            max-height: 85vh;
             overflow-y: auto;
         }
 
-        /* --- MOBILE LAYOUT (Responsive) --- */
+        /* --- MOBILE LAYOUT (Fixes) --- */
         @media (max-width: 768px) {
             .app-container {
                 flex-direction: column;
-            }
-
-            .sidebar {
-                width: 100%;
-                height: 50vh; /* Half screen for input */
-                position: absolute;
-                bottom: 0;
-                left: 0;
-                padding: 20px;
-                box-sizing: border-box;
-                background: rgba(5, 10, 20, 0.95);
-                border-top: 1px solid #00e5ff;
-                border-right: none;
-                border-radius: 20px 20px 0 0;
+                height: 100vh; /* Strict height */
+                overflow: hidden;
             }
 
             .canvas-container {
                 width: 100%;
-                height: 50vh; /* Top half for Earth */
-                position: absolute;
-                top: 0;
-                left: 0;
+                height: 35vh; /* Reduced height for Earth */
+                position: relative;
+                z-index: 1;
+            }
+
+            .sidebar {
+                width: 100%;
+                height: 65vh; /* More space for form */
+                padding: 20px;
+                padding-bottom: 80px; /* Space for scrolling */
+                background: rgba(5, 10, 20, 0.95);
+                border-top: 1px solid #00e5ff;
+                border-right: none;
+                border-radius: 20px 20px 0 0;
+                z-index: 10;
+                overflow-y: scroll; /* Enable scrolling */
+                -webkit-overflow-scrolling: touch;
             }
 
             .modal-content {
                 width: 90%;
                 padding: 20px;
-                margin-top: 20px;
+                margin-top: 10px;
             }
 
-            h1 { font-size: 2rem !important; }
-            h2 { font-size: 0.8rem !important; }
+            h1 { font-size: 1.8rem !important; }
+            h2 { font-size: 0.7rem !important; }
         }
     `}</style>
 
     <div className="app-container">
-      {/* Visual Effects */}
       <div style={crtOverlayStyle}></div>
       <div style={vignetteStyle}></div>
 
@@ -246,11 +254,16 @@ function App() {
 
         {errorMsg && <div style={{color: "#ff4444", fontSize: "0.8rem", marginTop: "10px"}}>⚠️ {errorMsg}</div>}
 
-        <div style={{marginTop: "20px", display: "flex", justifyContent: "space-between", alignItems: "center"}}>
+        <div style={{marginTop: "20px", display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px"}}>
              <div style={{fontSize: "0.8rem", color: isLimitReached ? "#ff4444" : "#00ff88", border: `1px solid ${isLimitReached ? "#ff4444" : "#00ff88"}`, padding: "5px 10px", borderRadius: "4px", letterSpacing: "1px"}}>USES: {usageCount}/{MAX_LIMIT}</div>
              <motion.button whileHover={!isLimitReached ? { scale: 1.05 } : {}} onClick={handleGenerate} disabled={loading || isLimitReached} style={{...buttonStyle, background: isLimitReached ? "#333" : "#00e5ff", color: isLimitReached ? "#666" : "black", cursor: isLimitReached ? "not-allowed" : "pointer"}}>
                 {isLimitReached ? "LIMIT REACHED" : (loading ? "ANALYZING..." : "GENERATE PLAN")}
             </motion.button>
+        </div>
+
+        {/* --- FOOTER ADDED HERE --- */}
+        <div className="footer">
+            DEC - 2025 | Developed by Sayyed Mohsin Ali
         </div>
       </div>
 
@@ -312,7 +325,7 @@ function App() {
   );
 }
 
-// --- INLINE STYLES FOR STATIC ELEMENTS ---
+// --- STYLES ---
 const vignetteStyle = { position: "absolute", top: 0, left: 0, width: "100%", height: "100%", zIndex: 50, pointerEvents: "none", background: "radial-gradient(circle, rgba(0,0,0,0) 60%, rgba(0,0,0,0.8) 100%)", boxShadow: "inset 0 0 50px rgba(0,0,0,0.9)" };
 const crtOverlayStyle = { position: "absolute", top: 0, left: 0, width: "100%", height: "100%", zIndex: 40, pointerEvents: "none", background: "linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.1) 50%)", backgroundSize: "100% 4px" };
 const logoStyle = { fontSize: "2.5rem", margin: 0, color: "white", letterSpacing: "2px", lineHeight: "1" };
