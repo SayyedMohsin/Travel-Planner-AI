@@ -12,38 +12,39 @@ An advanced **Agentic AI System** that acts as a professional Travel Architect. 
 ## ✨ Key Features
 
 ### 🧠 Intelligent Agentic Core
-- **Powered by Llama 3 (via Groq):** Utilizes the latest LLM for high-speed reasoning and structured JSON outputs.
-- **Multi-Step Reasoning:** The agent decides which tools to call (Flight Search, Hotel Finder, Weather API) based on user input.
-- **Indian Context Aware:** Specialized in planning detailed itineraries for Indian cities with cultural nuances.
+* **Powered by Llama 3 (via Groq):** Utilizes the latest LLM for high-speed reasoning and structured JSON outputs.
+* **Multi-Step Reasoning:** The agent decides which tools to call (Flight Search, Hotel Finder, Weather API) based on user input.
+* **Indian Context Aware:** Specialized in planning detailed itineraries for Indian cities with cultural nuances.
 
 ### 💻 Sci-Fi 3D Interface
-- **Holographic Earth:** Interactive 3D globe built with **Three.js (React Three Fiber)**.
-- **Immersive Visuals:** Floating 3D elements, moving flight animations, and a curved CRT-monitor aesthetic.
-- **Glassmorphism UI:** Modern, translucent UI components built with CSS-in-JS.
+* **Holographic Earth:** Interactive 3D globe built with **Three.js (React Three Fiber)**.
+* **Immersive Visuals:** Floating 3D elements, moving flight animations, and a curved CRT-monitor aesthetic.
+* **Glassmorphism UI:** Modern, translucent UI components built with CSS-in-JS.
 
 ### 🛠️ Utility Features
-- **📥 PDF Export:** Generate and download a professional trip itinerary PDF with a single click.
-- **🗣️ AI Voice Assistant:** Reads out the plan in an Indian accent using the browser's Speech Synthesis API.
-- **🌤️ Real-Time Weather:** Integrates with Open-Meteo API for accurate forecasts.
-- **💰 Smart Budgeting:** Calculates estimated costs for flights, hotels, and daily expenses.
+* **📥 PDF Export:** Generate and download a professional trip itinerary PDF with a single click.
+* **🗣️ AI Voice Assistant:** Reads out the plan in an Indian accent using the browser's Speech Synthesis API.
+* **🌤️ Real-Time Weather:** Integrates with Open-Meteo API for accurate forecasts.
+* **💰 Smart Budgeting:** Calculates estimated costs for flights, hotels, and daily expenses.
 
 ---
 
 ## 🏗️ Tech Stack
 
 ### **Backend (Python)**
-- **Framework:** FastAPI (High-performance API)
-- **AI Orchestration:** LangChain (Tool Calling Agent)
-- **LLM Engine:** Groq API (Llama-3.1-8b-instant / Llama-3.3-70b)
-- **Data Validation:** Pydantic
-- **Server:** Uvicorn
+* **Framework:** FastAPI (High-performance API)
+* **AI Orchestration:** LangChain (Tool Calling Agent)
+* **LLM Engine:** Groq API (Llama-3.1-8b-instant / Llama-3.3-70b)
+* **Data Validation:** Pydantic
+* **Data Manipulation:** Pandas
+* **Server:** Uvicorn
 
 ### **Frontend (JavaScript)**
-- **Library:** React.js (Vite)
-- **3D Graphics:** Three.js, React Three Fiber, Drei
-- **Animations:** Framer Motion
-- **PDF Generation:** jsPDF
-- **HTTP Client:** Axios
+* **Library:** React.js (Vite)
+* **3D Graphics:** Three.js, React Three Fiber, Drei
+* **Animations:** Framer Motion
+* **PDF Generation:** jsPDF
+* **HTTP Client:** Axios
 
 ---
 
@@ -52,42 +53,73 @@ An advanced **Agentic AI System** that acts as a professional Travel Architect. 
 Follow these steps to run the project locally.
 
 ### 1️⃣ Clone the Repository
-```bash
-git clone [https://github.com/YOUR_USERNAME/Travel-Planner-AI.git](https://github.com/YOUR_USERNAME/Travel-Planner-AI.git)
-cd Travel-Planner-AI
 
-2️⃣ Backend Setup
+```bash
+git clone https://github.com/SayyedMohsin/Travel-Planner-AI.git
+cd Travel-Planner-AI
+```
+
+---
+
+### 2️⃣ Backend Setup
+
 Navigate to the backend folder and set up the Python environment.
+
+```bash
 cd backend
+
 # Create Virtual Environment
 python -m venv venv
+
 # Activate Environment (Windows)
-venv\Scripts\activate
+venv\\Scripts\\activate
+
 # Activate Environment (Mac/Linux)
 source venv/bin/activate
 
 # Install Dependencies
 pip install -r requirements.txt
+```
 
-Configure API Keys: Create a .env file in the backend folder and add your Groq API Key:
+**Configure API Keys:**
+Create a `.env` file in the `backend` folder and add your Groq API Key:
+
+```env
 GROQ_API_KEY=gsk_your_secret_key_here
+```
 
-Run Server:
+**Run Server:**
+
+```bash
 # Runs on 0.0.0.0 to avoid CORS issues
 python api.py
+```
 
-3️⃣ Frontend Setup
+Backend will start at: **http://localhost:8000**
+
+---
+
+### 3️⃣ Frontend Setup
+
 Open a new terminal and navigate to the frontend folder.
+
+```bash
 cd frontend-3d
+
 # Install Node Modules
 npm install
 
 # Run Development Server
 npm run dev
+```
 
-Frontend will start at: http://localhost:5173
+Frontend will start at: **http://localhost:5173**
 
-📂 Project Structure
+---
+
+## 📂 Project Structure
+
+```
 Travel-Planner-AI/
 ├── backend/                 # FastAPI & LangChain Logic
 │   ├── agent/               # Agent definition & Prompt Engineering
@@ -103,17 +135,22 @@ Travel-Planner-AI/
 │   └── package.json         # JS Dependencies
 │
 └── README.md                # Project Documentation
+```
 
+---
 
-📸 Screenshots
+## 📸 Screenshots
 (Add screenshots of your 3D Dashboard here)
 
+---
 
+## 🤝 Contributing
 
-🤝 Contributing
 Contributions are welcome! Please fork this repository and submit a pull request for any features or bug fixes.
 
-📜 License
-This project is licensed under the MIT License.
+---
 
+## 📜 License
+
+This project is licensed under the **MIT License**.
 
