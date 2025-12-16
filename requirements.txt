@@ -1,0 +1,7 @@
+langchain
+langchain-openai
+pydantic
+pandas
+requests
+streamlit # UI के लिए
+python-dotenv # API Key को सुरक्षित रूप से संभालने के लिए

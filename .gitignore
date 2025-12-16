@@ -1,0 +1,22 @@
+# Python System Files
+__pycache__/
+*.py[cod]
+
+# Virtual Environment (Very Heavy - Don't Upload)
+venv/
+env/
+
+# Environment Variables (SECRET KEYS - Never Upload!)
+.env
+
+# Node Modules (Frontend Libraries - Heavy)
+node_modules/
+dist/
+build/
+
+# Logs
+*.log
+
+# OS Files
+.DS_Store
+Thumbs.db
