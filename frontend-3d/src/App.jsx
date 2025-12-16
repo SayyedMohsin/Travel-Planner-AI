@@ -6,7 +6,7 @@ import axios from "axios";
 import { motion, AnimatePresence } from "framer-motion";
 import jsPDF from "jspdf"; // PDF Library
 
-const API_URL = "http://127.0.0.1:8000/generate_plan";
+const API_URL = "https://travel-planner-ai-qlbb.onrender.com/generate_plan";
 const MAX_LIMIT = 2; // Limit set to 2
 
 const CITIES = {
