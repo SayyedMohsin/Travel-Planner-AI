@@ -1,8 +1,10 @@
+fastapi
 uvicorn
 langchain
-langchain-openai
+langchain-groq
+langchain-community
+langchain-core
+python-dotenv
 pydantic
-pandas
 requests
-streamlit # UI के लिए
-python-dotenv # API Key को सुरक्षित रूप से संभालने के लिए
+pandas
