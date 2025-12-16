@@ -57,16 +57,14 @@ function App() {
   const [errorMsg, setErrorMsg] = useState("");
   const [isSpeaking, setIsSpeaking] = useState(false);
   
-  // --- ROBUST MOBILE DETECTION ---
-  const [isMobile, setIsMobile] = useState(false);
+  // --- INSTANT MOBILE CHECK ---
+  // We check window width immediately, fallback to false if window is undefined (SSR)
+  const [isMobile, setIsMobile] = useState(() => typeof window !== 'undefined' ? window.innerWidth < 768 : false);
 
   useEffect(() => {
-    const checkMobile = () => {
-        setIsMobile(window.innerWidth < 768);
-    };
-    checkMobile(); // Check on load
-    window.addEventListener("resize", checkMobile);
-    return () => window.removeEventListener("resize", checkMobile);
+    const handleResize = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
   }, []);
 
   const handleGenerate = async () => {
@@ -176,6 +174,11 @@ function App() {
             position: relative;
         }
 
+        /* Form Card Style (Used on Mobile) */
+        .glass-card {
+            width: 100%;
+        }
+
         .modal-overlay {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(0,0,0,0.8); backdrop-filter: blur(8px);
@@ -199,36 +202,62 @@ function App() {
             .app-container {
                 display: block;
                 height: 100vh;
-                overflow-y: auto; /* Allow scroll on body */
+                overflow: hidden; /* No scroll on main body to keep bg fixed */
             }
 
+            /* Earth/Sky Background */
             .canvas-container {
                 position: fixed;
                 top: 0; left: 0; width: 100%; height: 100%;
-                z-index: -1; /* Behind everything */
+                z-index: 0;
             }
 
+            /* Center the Form Card */
             .sidebar {
                 width: 100%;
-                height: auto;
-                min-height: 100vh; /* Cover full height */
-                background: rgba(0, 5, 10, 0.6); /* Transparent to show SKY */
+                height: 100%;
+                background: rgba(0, 0, 0, 0.4); /* Slightly dark overlay */
                 border: none;
                 padding: 20px;
                 box-sizing: border-box;
-                position: relative;
+                position: absolute;
+                top: 0; left: 0;
                 z-index: 10;
-                justify-content: flex-start; /* Start from top */
+                display: flex;
+                flex-direction: column;
+                justify-content: center; /* VERTICAL CENTER */
+                align-items: center;     /* HORIZONTAL CENTER */
+            }
+
+            .glass-card {
+                background: rgba(10, 15, 30, 0.85); /* Dark Glass */
+                backdrop-filter: blur(12px);
+                padding: 25px;
+                border-radius: 20px;
+                border: 1px solid rgba(0, 229, 255, 0.2);
+                box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+                width: 100%;
+                max-width: 350px; /* Limit width */
             }
 
             .modal-content {
                 width: 90%;
                 padding: 20px;
-                margin-top: 20px;
             }
             
+            /* Adjust Logo for Mobile */
             h1 { font-size: 2rem !important; text-align: center; }
-            h2 { font-size: 0.8rem !important; text-align: center; margin-bottom: 20px; }
+            h2 { font-size: 0.8rem !important; text-align: center; margin-bottom: 15px; }
+            
+            /* Footer Adjustment */
+            .mobile-footer {
+                position: absolute;
+                bottom: 20px;
+                width: 100%;
+                text-align: center;
+                color: #888;
+                font-size: 0.7rem;
+            }
         }
     `}</style>
 
@@ -240,13 +269,13 @@ function App() {
             <ambientLight intensity={0.5} />
             <pointLight position={[10, 10, 10]} intensity={2} color="#00e5ff" />
             
-            {/* LOGIC: IF MOBILE, SHOW ONLY SKY. IF DESKTOP, SHOW EARTH */}
+            {/* LOGIC: Mobile = Sky Only. Desktop = Earth. */}
             {isMobile ? (
                 <>
-                    {/* MOBILE SKY ONLY */}
-                    <Stars radius={50} count={8000} factor={6} fade speed={1} />
-                    <Sparkles count={200} scale={10} size={3} speed={0.4} color="#00e5ff" />
-                    <Cloud opacity={0.2} speed={0.2} width={10} depth={1.5} segments={20} position={[0, 0, -5]} />
+                    {/* MOBILE SKY (Dense & Fast) */}
+                    <Stars radius={60} count={10000} factor={6} fade speed={2} />
+                    <Sparkles count={400} scale={15} size={5} speed={0.8} color="#00e5ff" />
+                    <Cloud opacity={0.3} speed={0.5} width={15} depth={2} segments={20} position={[0, 0, -8]} />
                 </>
             ) : (
                 <>
@@ -257,16 +286,16 @@ function App() {
                 </>
             )}
 
-            <OrbitControls enableZoom={false} autoRotate autoRotateSpeed={0.5} enablePan={false} />
+            <OrbitControls enableZoom={false} autoRotate autoRotateSpeed={isMobile ? 0.3 : 0.5} enablePan={false} />
         </Canvas>
       </div>
 
-      {/* SIDEBAR UI */}
+      {/* SIDEBAR / CENTER UI */}
       <div className="sidebar">
         
-        {/* WRAPPER FOR CENTER ALIGNMENT ON MOBILE */}
-        <div style={isMobile ? {marginTop: "20vh", background: "rgba(10,15,25,0.85)", padding: "20px", borderRadius: "15px", border: "1px solid #333"} : {}}>
-            <div style={{borderBottom: "1px solid rgba(255,255,255,0.1)", paddingBottom: "15px", marginBottom: "30px"}}>
+        {/* FORM CARD (Centered on Mobile) */}
+        <div className="glass-card">
+            <div style={{borderBottom: "1px solid rgba(255,255,255,0.1)", paddingBottom: "10px", marginBottom: "20px"}}>
                 <h1 style={logoStyle}>AGENTIC AI</h1>
                 <h2 style={subLogoStyle}>TRAVEL PLANNING ASSISTANT</h2>
             </div>
@@ -286,12 +315,22 @@ function App() {
                     {isLimitReached ? "LIMIT REACHED" : (loading ? "ANALYZING..." : "GENERATE PLAN")}
                 </motion.button>
             </div>
+
+            {/* Desktop Footer (Hidden on Mobile via CSS logic if needed, but keeping inside card is safer for layout) */}
+            {!isMobile && (
+                <div style={{marginTop: "20px", paddingTop: "20px", borderTop: "1px solid rgba(255,255,255,0.1)", textAlign: "center", fontSize: "0.75rem", color: "#666", letterSpacing: "1px"}}>
+                    DEC 2025 | Developed by Sayyed Mohsin Ali
+                </div>
+            )}
         </div>
 
-        {/* FOOTER */}
-        <div style={{marginTop: "auto", paddingTop: "20px", borderTop: isMobile ? "none" : "1px solid rgba(255,255,255,0.1)", textAlign: "center", fontSize: "0.75rem", color: "#888", letterSpacing: "1px"}}>
-            DEC 2025 | Developed by Sayyed Mohsin Ali
-        </div>
+        {/* Mobile Specific Footer (Absolute Bottom) */}
+        {isMobile && (
+            <div className="mobile-footer">
+                DEC 2025 | Developed by Sayyed Mohsin Ali
+            </div>
+        )}
+
       </div>
 
       {/* RESULT MODAL */}
