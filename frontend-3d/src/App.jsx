@@ -1,6 +1,6 @@
 import React, { useState, useRef, useMemo, useEffect } from "react";
 import { Canvas, useFrame } from "@react-three/fiber";
-import { OrbitControls, Stars, Float, Sparkles } from "@react-three/drei";
+import { OrbitControls, Stars, Float, Sparkles, Cloud } from "@react-three/drei";
 import * as THREE from 'three';
 import axios from "axios";
 import { motion, AnimatePresence } from "framer-motion";
@@ -20,7 +20,7 @@ const CITIES = {
   Varanasi: { lat: 25.31, lon: 82.97 }
 };
 
-// --- 3D EARTH ---
+// --- 3D EARTH (Desktop Only) ---
 function HolographicEarth() {
   const meshRef = useRef();
   useFrame(() => { if (meshRef.current) meshRef.current.rotation.y += 0.001; });
@@ -56,6 +56,15 @@ function App() {
   const [usageCount, setUsageCount] = useState(0);
   const [errorMsg, setErrorMsg] = useState("");
   const [isSpeaking, setIsSpeaking] = useState(false);
+  
+  // --- MOBILE DETECTION STATE ---
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
 
   const handleGenerate = async () => {
     if (usageCount >= MAX_LIMIT) return;
@@ -138,7 +147,6 @@ function App() {
 
   return (
     <>
-    {/* --- PROFESSIONAL RESPONSIVE CSS --- */}
     <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&display=swap');
         
@@ -160,7 +168,7 @@ function App() {
             border-right: 1px solid #222;
             display: flex;
             flex-direction: column;
-            justify-content: space-between; /* Pushes footer to bottom */
+            justify-content: space-between;
             z-index: 60;
             position: relative;
         }
@@ -188,7 +196,7 @@ function App() {
             overflow-y: auto;
         }
 
-        /* --- MOBILE STYLES (THE FIX) --- */
+        /* --- MOBILE STYLES --- */
         @media (max-width: 768px) {
             .app-container {
                 display: block;
@@ -196,18 +204,16 @@ function App() {
                 overflow: hidden;
             }
 
-            /* Earth goes to background */
             .canvas-container {
                 position: fixed;
                 top: 0; left: 0; width: 100%; height: 100%;
                 z-index: 0;
             }
 
-            /* Sidebar becomes full screen overlay */
             .sidebar {
                 width: 100%;
                 height: 100%;
-                background: rgba(0, 5, 10, 0.85); /* See-through dark */
+                background: rgba(0, 5, 10, 0.7); /* More transparent to see the Sky */
                 border: none;
                 padding: 20px;
                 box-sizing: border-box;
@@ -223,22 +229,36 @@ function App() {
     `}</style>
 
     <div className="app-container">
-      {/* 3D EARTH (Background) */}
+      {/* 3D SCENE (Changes based on Mobile/Desktop) */}
       <div className="canvas-container">
          <Canvas camera={{ position: [0, 0, 7.5], fov: 45 }}>
             <color attach="background" args={["#000510"]} />
             <ambientLight intensity={0.5} />
             <pointLight position={[10, 10, 10]} intensity={2} color="#00e5ff" />
-            <Stars radius={100} count={5000} factor={4} fade />
-            <Sparkles count={100} scale={6} size={2} color="#00e5ff" />
-            <Float speed={2} rotationIntensity={0.2} floatIntensity={0.2}><HolographicEarth /></Float>
-            <OrbitControls enableZoom={false} autoRotate autoRotateSpeed={0.5} enablePan={false} />
+            
+            {/* Logic: If Mobile, Show Dense Sky. If Desktop, Show Earth + Normal Sky */}
+            {isMobile ? (
+                <>
+                    {/* MOBILE SKY (Dense & Fast) */}
+                    <Stars radius={50} count={8000} factor={6} fade speed={2} />
+                    <Sparkles count={300} scale={12} size={4} speed={0.6} color="#00e5ff" />
+                    <Cloud opacity={0.3} speed={0.4} width={10} depth={1.5} segments={20} position={[0, 0, -5]} />
+                </>
+            ) : (
+                <>
+                    {/* DESKTOP (Earth + Normal Sky) */}
+                    <Stars radius={100} count={5000} factor={4} fade />
+                    <Sparkles count={100} scale={6} size={2} color="#00e5ff" />
+                    <Float speed={2} rotationIntensity={0.2} floatIntensity={0.2}><HolographicEarth /></Float>
+                </>
+            )}
+
+            <OrbitControls enableZoom={false} autoRotate autoRotateSpeed={isMobile ? 0.2 : 0.5} enablePan={false} />
         </Canvas>
       </div>
 
-      {/* SIDEBAR UI (Top to Bottom) */}
+      {/* SIDEBAR UI */}
       <div className="sidebar">
-        {/* TOP: Header & Form */}
         <div>
             <div style={{borderBottom: "1px solid rgba(255,255,255,0.1)", paddingBottom: "15px", marginBottom: "30px"}}>
                 <h1 style={logoStyle}>AGENTIC AI</h1>
@@ -262,7 +282,6 @@ function App() {
             </div>
         </div>
 
-        {/* BOTTOM: Footer (STICKY) */}
         <div style={{borderTop: "1px solid rgba(255,255,255,0.1)", paddingTop: "20px", marginTop: "20px", textAlign: "center", fontSize: "0.75rem", color: "#666", letterSpacing: "1px"}}>
             DEC 2025 | Developed by Sayyed Mohsin Ali
         </div>
@@ -313,7 +332,7 @@ function App() {
   );
 }
 
-// --- INLINE STYLES ---
+// --- STYLES ---
 const logoStyle = { fontSize: "2.5rem", margin: 0, color: "white", letterSpacing: "2px", lineHeight: "1" };
 const subLogoStyle = { fontSize: "0.9rem", margin: 0, color: "#00e5ff", letterSpacing: "1px", fontWeight: "500" };
 const inputWrapper = { marginBottom: "15px" };
