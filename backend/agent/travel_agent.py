@@ -1,11 +1,8 @@
 import os
-from dotenv import load_dotenv
 import json
-
-# --- IMPORTS ---
-from langchain.agents import AgentExecutor, create_tool_calling_agent
-from langchain_groq import ChatGroq 
-from langchain.prompts import ChatPromptTemplate
+from dotenv import load_dotenv
+from langchain_groq import ChatGroq
+from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.pydantic_v1 import BaseModel, Field
 
 # Tools Imports
@@ -17,7 +14,7 @@ from backend.tools.budget_tool import BudgetEstimationTool
 
 load_dotenv()
 
-# --- OUTPUT SCHEMA ---
+# --- 1. OUTPUT SCHEMA ---
 class ItineraryOutput(BaseModel):
     trip_summary: str = Field(description="Summary of the trip.")
     flight_selected: dict = Field(description="Flight details.")
@@ -26,72 +23,96 @@ class ItineraryOutput(BaseModel):
     reasoning: str = Field(description="Why this flight/hotel was chosen.")
     day_wise_plan: list[dict] = Field(description="List of days with 'day' (number) and 'activity' (long description).")
 
+# --- 2. INITIALIZE (Just setup LLM) ---
 def initialize_travel_agent():
-    tools = [FlightSearchTool(), HotelRecommendationTool(), PlacesDiscoveryTool(), WeatherLookupTool(), BudgetEstimationTool()]
-    
     if not os.getenv("GROQ_API_KEY"): raise ValueError("GROQ_API_KEY missing.")
-
-    # --- FAST MODEL ---
+    
+    # Fast Model
     llm = ChatGroq(
-        temperature=0.1, 
+        temperature=0.3,
         model_name="llama-3.1-8b-instant",
         api_key=os.getenv("GROQ_API_KEY")
     )
+    return llm
 
-    schema_json = ItineraryOutput.schema_json(indent=2)
-    
-    # --- ONE-SHOT PROMPT (The Magic Fix) ---
-    system_msg = """You are a smart Travel Assistant.
-    
-    YOUR GOAL: Generate a JSON plan. Do not talk. Do not explain. Just JSON.
-    
-    EXAMPLE OUTPUT (Follow this structure EXACTLY):
+# --- 3. TURBO RUN FUNCTION (Manual Tool Calling) ---
+def run_travel_agent(source, destination, days, budget, llm):
+    print(f"🚀 STARTING TURBO MODE: {source} -> {destination}")
+
+    # A. Execute Tools Manually (Python is faster than AI thinking)
+    try:
+        # 1. Flights
+        flight_tool = FlightSearchTool()
+        flight_data = flight_tool.run(f"{source} to {destination}")
+        
+        # 2. Hotels
+        hotel_tool = HotelRecommendationTool()
+        hotel_data = hotel_tool.run(destination)
+        
+        # 3. Weather
+        weather_tool = WeatherLookupTool()
+        weather_data = weather_tool.run(destination)
+        
+        # 4. Places
+        places_tool = PlacesDiscoveryTool()
+        places_data = places_tool.run(destination)
+
+        print("✅ Data Fetched from Tools!")
+
+    except Exception as e:
+        print(f"⚠️ Tool Error: {e}")
+        flight_data = "Check Online"
+        hotel_data = "Standard Hotel"
+        weather_data = "Sunny"
+        places_data = "Famous Tourist Spots"
+
+    # B. AI Formatting (Just one call)
+    system_msg = """You are a Smart Travel Planner.
+    I have already fetched the raw data for you. 
+    YOUR JOB: Convert this raw data into a beautiful JSON itinerary.
+
+    RAW DATA:
+    - Flight Options: {flight_data}
+    - Hotel Options: {hotel_data}
+    - Weather: {weather_data}
+    - Top Places: {places_data}
+    - Trip Duration: {days} days
+    - Budget Level: {budget}
+
+    INSTRUCTIONS:
+    1. Select the best flight and hotel from the data provided.
+    2. Create a day-by-day plan using the 'Top Places'.
+    3. Calculate total budget (Flight + Hotel + 3000 food/travel per day).
+    4. OUTPUT MUST BE PURE JSON. NO TEXT.
+
+    JSON SCHEMA:
     {{
-      "trip_summary": "A wonderful trip to Goa.",
-      "flight_selected": {{ "airline": "IndiGo", "price": 5000 }},
-      "hotel_selected": {{ "hotel_name": "Goa Beach Resort", "price": 4000 }},
-      "total_budget_estimated": 20000,
-      "reasoning": "Cheapest flight and best rated hotel selected.",
+      "trip_summary": "Short summary string",
+      "flight_selected": {{ "airline": "Name", "price": 0 }},
+      "hotel_selected": {{ "hotel_name": "Name", "price": 0 }},
+      "total_budget_estimated": 0,
+      "reasoning": "One sentence on why selected.",
       "day_wise_plan": [
-        {{ "day": 1, "activity": "Arrive in Goa, check into hotel, and visit Baga Beach." }},
-        {{ "day": 2, "activity": "Visit Fort Aguada and enjoy water sports." }}
+        {{ "day": 1, "activity": "Detailed activity..." }}
       ]
     }}
-
-    NOW GENERATE FOR THE USER INPUT.
-    SCHEMA:
-    {schema}
     """
 
     prompt = ChatPromptTemplate.from_messages([
         ("system", system_msg),
-        ("human", "{input}"),
-        ("placeholder", "{agent_scratchpad}"),
+        ("human", "Generate plan now.")
     ])
-    
-    prompt = prompt.partial(schema=schema_json)
-    agent = create_tool_calling_agent(llm, tools, prompt)
-    
-    return AgentExecutor(agent=agent, tools=tools, verbose=True, handle_parsing_errors=True)
 
-def run_travel_agent(query: str, agent_executor):
-    print(f"--- Processing: {query} ---")
-    try:
-        result = agent_executor.invoke({"input": query})
-        output = result['output']
-        return output
-    except Exception as e:
-        print(f"❌ Agent Error: {e}")
-        # --- EMERGENCY FALLBACK (Agar AI fail ho to ye dikhao) ---
-        return json.dumps({
-            "trip_summary": "Standard Trip Plan (AI Busy)",
-            "flight_selected": {"airline": "Standard Airlines", "price": 4500},
-            "hotel_selected": {"hotel_name": "Premium City Hotel", "price": 3500},
-            "total_budget_estimated": 15000,
-            "reasoning": "Selected based on standard market rates as AI was unresponsive.",
-            "day_wise_plan": [
-                {"day": 1, "activity": "Arrival at destination, check-in to hotel, and evening local market tour."},
-                {"day": 2, "activity": "Full day sightseeing of famous city landmarks and cultural spots."},
-                {"day": 3, "activity": "Morning relaxation and departure back home."}
-            ]
-        })
+    # C. Run AI
+    chain = prompt | llm
+    
+    response = chain.invoke({
+        "flight_data": flight_data,
+        "hotel_data": hotel_data,
+        "weather_data": weather_data,
+        "places_data": places_data,
+        "days": days,
+        "budget": budget
+    })
+
+    return response.content
