@@ -31,25 +31,30 @@ def initialize_travel_agent():
     
     if not os.getenv("GROQ_API_KEY"): raise ValueError("GROQ_API_KEY missing.")
 
-    # --- SWITCHING BACK TO SMART MODEL (STABLE) ---
+    # --- USING FAST MODEL ---
     llm = ChatGroq(
-        temperature=0.5, 
-        model_name="llama-3.1-8b-instant", # यह मॉडल कभी गलती नहीं करता
+        temperature=0.1,  # Temperature kam kiya taaki AI creative na ho, bas kaam kare
+        model_name="llama-3.1-8b-instant",
         api_key=os.getenv("GROQ_API_KEY")
     )
 
     schema_json = ItineraryOutput.schema_json(indent=2)
     
-    system_msg = """You are an elite Travel Architect for India.
+    # --- STRICT SYSTEM PROMPT ---
+    system_msg = """You are a JSON-only API. You are NOT a chatbot.
     
-    YOUR GOAL: Create a highly detailed, day-by-day travel story.
+    YOUR TASK: Plan a detailed trip based on user input.
     
-    CRITICAL RULES:
-    1. **Descriptions:** Write a short paragraph for each day describing morning, afternoon, and night. Mention specific Indian dishes.
-    2. **Reliability:** Ensure all JSON fields are filled correctly.
-    3. **JSON Only:** Your final output must be pure JSON matching the schema below.
+    CRITICAL INSTRUCTIONS:
+    1. **OUTPUT FORMAT:** You must output ONLY a valid JSON object.
+    2. **NO TEXT:** Do NOT write "Here is the plan" or "Note:". Do NOT use markdown code blocks like ```json. Just raw JSON.
+    3. **CONTENT:**
+       - 'day_wise_plan': Write 3-4 sentences for each day. Mention real places and food.
+       - 'flight_selected': Must include 'airline' and 'price'.
+       - 'hotel_selected': Must include 'hotel_name' and 'price'.
+       - 'total_budget_estimated': Must be a number (Integer).
     
-    SCHEMA:
+    SCHEMA TO FOLLOW:
     {schema}
     """
 
@@ -70,7 +75,7 @@ def run_travel_agent(query: str, agent_executor):
         result = agent_executor.invoke({"input": query})
         output = result['output']
         
-        # Clean JSON Logic
+        # Cleaning Logic (Agar AI ne fir bhi galti ki)
         if "```json" in output: 
             output = output.split("```json")[1].split("```")[0].strip()
         elif "```" in output: 
@@ -79,12 +84,12 @@ def run_travel_agent(query: str, agent_executor):
         return output
     except Exception as e:
         print(f"❌ Agent Error: {e}")
-        # Return Error JSON with explicit message
+        # Fallback JSON
         return json.dumps({
-            "trip_summary": "System faced an error generating the plan.",
+            "trip_summary": "Error generating plan.",
             "flight_selected": {"airline": "Standard Air", "price": 5000},
             "hotel_selected": {"hotel_name": "City Hotel", "price": 3000},
-            "total_budget_estimated": 0, # Frontend will detect this
-            "reasoning": f"Internal Error: {str(e)}",
+            "total_budget_estimated": 0,
+            "reasoning": "AI Format Error. Please try again.",
             "day_wise_plan": []
         })
