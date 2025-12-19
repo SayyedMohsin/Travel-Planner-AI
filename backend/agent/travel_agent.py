@@ -33,8 +33,8 @@ def initialize_travel_agent():
 
     # --- SWITCHING BACK TO SMART MODEL (STABLE) ---
     llm = ChatGroq(
-        temperature=0.2, 
-        model_name="llama-3.3-70b-versatile", # यह मॉडल कभी गलती नहीं करता
+        temperature=0.5, 
+        model_name="llama-3.1-8b-instant", # यह मॉडल कभी गलती नहीं करता
         api_key=os.getenv("GROQ_API_KEY")
     )
 
