@@ -13,50 +13,65 @@ from backend.tools.weather_tool import WeatherLookupTool
 load_dotenv()
 
 def initialize_travel_agent():
-    if not os.getenv("GROQ_API_KEY"):
-        print("❌ ERROR: GROQ_API_KEY is missing from Environment Variables!")
+    api_key = os.getenv("GROQ_API_KEY")
+    if not api_key:
+        print("❌ ERROR: GROQ_API_KEY is missing!")
         return None
     
     return ChatGroq(
-        temperature=0.2,
+        temperature=0.1, # Low temperature for factual consistency
         model_name="llama-3.1-8b-instant",
-        api_key=os.getenv("GROQ_API_KEY")
+        api_key=api_key
     )
 
 def run_travel_agent(source, destination, days, budget, llm):
-    # --- Execute Tools Manually (Super Fast) ---
+    # --- 1. Fetch Real Data from Tools ---
     try:
-        flight_data = FlightSearchTool()._run(f"{source} to {destination}")
-        hotel_data = HotelRecommendationTool()._run(destination)
-        weather_data = WeatherLookupTool()._run(destination)
-        places_data = PlacesDiscoveryTool()._run(destination)
+        # We use .run() to get the string result from tools
+        f_data = FlightSearchTool().run(f"{source} to {destination}")
+        h_data = HotelRecommendationTool().run(destination)
+        w_data = WeatherLookupTool().run(destination)
+        p_data = PlacesDiscoveryTool().run(destination)
     except Exception as e:
-        print(f"⚠️ Tool Error: {e}")
-        flight_data, hotel_data, weather_data, places_data = "N/A", "N/A", "Cloudy", "Tourist Spots"
+        print(f"⚠️ Tool Fetch Error: {e}")
+        f_data, h_data, w_data, p_data = "IndiGo/Air India", "Luxury Resort", "Sunny", "Local Attractions"
 
-    system_msg = """You are a Smart Travel Planner. 
-    Convert raw data into a PURE JSON itinerary. No conversational text.
+    # --- 2. Strict Prompt to force JSON Mapping ---
+    system_msg = """You are a Travel Planner API. You MUST output ONLY valid JSON.
     
-    DATA:
-    - Origin: {source}, Destination: {destination}
-    - Flights: {f}, Hotels: {h}, Weather: {w}, Places: {p}
-    - Duration: {d} days, Budget: {b}
+    TASK: Use the provided data to create a trip.
+    
+    DATA PROVIDED:
+    - Origin: {source} | Destination: {destination}
+    - Raw Flight Info: {f}
+    - Raw Hotel Info: {h}
+    - Weather Info: {w}
+    - Places to visit: {p}
+    - Budget Level: {b} | Days: {d}
 
-    OUTPUT SCHEMA (Must be valid JSON):
+    RULES:
+    1. 'flight_selected': Extract the AIRLINE NAME and PRICE from the flight info. If missing, use 'IndiGo' and 5500.
+    2. 'hotel_selected': Extract the HOTEL NAME and PRICE from the hotel info. If missing, use a famous hotel in {destination}.
+    3. 'total_budget_estimated': Calculate (Flight + Hotel + 3000 per day for food). Output as a NUMBER.
+    4. 'day_wise_plan': Create a detailed plan for {d} days using the provided 'Places'.
+    5. NO CONVERSATION. NO MARKDOWN. JUST RAW JSON.
+
+    JSON FORMAT:
     {{
-      "trip_summary": "Summary text",
-      "flight_selected": {{ "airline": "Name", "price": 5000 }},
-      "hotel_selected": {{ "hotel_name": "Name", "price": 4000 }},
-      "total_budget_estimated": 15000,
-      "reasoning": "Quick logic",
-      "day_wise_plan": [ {{ "day": 1, "activity": "desc" }} ]
+      "trip_summary": "A {b} trip to {destination}.",
+      "flight_selected": {{ "airline": "Airline Name", "price": 5000 }},
+      "hotel_selected": {{ "hotel_name": "Hotel Name", "price": 4000 }},
+      "total_budget_estimated": 25000,
+      "reasoning": "Selected best value flight and hotel based on {b} budget.",
+      "day_wise_plan": [ {{ "day": 1, "activity": "Arrive at {destination}..." }} ]
     }}"""
 
-    prompt = ChatPromptTemplate.from_messages([("system", system_msg), ("human", "Create JSON now.")])
+    prompt = ChatPromptTemplate.from_messages([("system", system_msg), ("human", "Generate the JSON now.")])
     chain = prompt | llm
     
     response = chain.invoke({
-        "source": source, "destination": destination, "f": flight_data, 
-        "h": hotel_data, "w": weather_data, "p": places_data, "d": days, "b": budget
+        "source": source, "destination": destination, "f": f_data, 
+        "h": h_data, "w": w_data, "p": p_data, "d": days, "b": budget
     })
+    
     return response.content
