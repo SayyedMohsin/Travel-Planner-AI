@@ -6,15 +6,18 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import json
 
+# Path Fix
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 try:
     from backend.agent.travel_agent import initialize_travel_agent, run_travel_agent
 except ImportError as e:
+    print(f"❌ IMPORT ERROR: {e}")
     sys.exit(1)
 
 app = FastAPI()
 
+# --- CORS ---
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -23,10 +26,11 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Init Agent (Now it just loads LLM)
 print("⏳ Loading AI Model...")
-agent_executor = None
+llm_instance = None
 try:
-    agent_executor = initialize_travel_agent()
+    llm_instance = initialize_travel_agent()
     print("✅ AI AGENT READY!")
 except Exception as e:
     print(f"❌ Agent Init Error: {e}")
@@ -39,17 +43,25 @@ class TripRequest(BaseModel):
 
 @app.api_route("/", methods=["GET", "HEAD"])
 async def home(request: Request):
-    return {"status": "Online"}
+    return {"status": "Online", "message": "Backend is Running!"}
 
 @app.post("/generate_plan")
 def generate_plan(request: TripRequest):
-    if not agent_executor:
-        raise HTTPException(status_code=500, detail="AI Agent not loaded.")
+    if not llm_instance:
+        raise HTTPException(status_code=500, detail="AI Model not loaded.")
 
-    query = f"Plan a {request.days}-day trip from {request.source} to {request.destination}. Budget: {request.budget}. detailed Indian itinerary."
-    
+    print(f"📨 New Request: {request.destination} for {request.days} days")
+
     try:
-        response = run_travel_agent(query, agent_executor)
+        # --- CALL NEW TURBO FUNCTION ---
+        # Note: We pass raw data now, not a string query
+        response = run_travel_agent(
+            request.source, 
+            request.destination, 
+            request.days, 
+            request.budget, 
+            llm_instance
+        )
         
         # --- CLEANING LOGIC ---
         if isinstance(response, str):
@@ -63,24 +75,28 @@ def generate_plan(request: TripRequest):
                 clean = clean[start:end]
             
             try:
-                return json.loads(clean)
-            except:
-                # Agar JSON fail ho, tab bhi crash mat hone do
+                data = json.loads(clean)
+                print("✅ JSON Generated Successfully")
+                return data
+            except json.JSONDecodeError:
+                print("⚠️ JSON Parse Failed, sending Fallback.")
+                # Fallback only if JSON fails
                 return {
-                    "trip_summary": "System Generated Plan",
-                    "flight_selected": {"airline": "IndiGo (Est)", "price": 5000},
-                    "hotel_selected": {"hotel_name": "City Comfort Stay", "price": 3000},
-                    "total_budget_estimated": 18000,
-                    "reasoning": "AI generated rough estimate due to high traffic.",
+                    "trip_summary": f"Trip to {request.destination}",
+                    "flight_selected": {"airline": "Check Online", "price": 5000},
+                    "hotel_selected": {"hotel_name": "Grand Hotel", "price": 4000},
+                    "total_budget_estimated": 15000 * request.days,
+                    "reasoning": "AI raw text response. JSON parsing failed.",
                     "day_wise_plan": [
-                        {"day": 1, "activity": "Arrival and Check-in. Visit local market."},
-                        {"day": 2, "activity": "City Tour and famous landmarks visit."}
+                        {"day": 1, "activity": "Arrival and relaxation."},
+                        {"day": 2, "activity": "City tour and sightseeing."}
                     ]
                 }
                 
         return response
 
     except Exception as e:
+        print(f"❌ Server Error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 if __name__ == "__main__":
